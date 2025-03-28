@@ -5,8 +5,13 @@ import { Twitter } from "lucide-react";
 import { motion } from "framer-motion";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { useSession, signOut } from "next-auth/react";
+import Image from "next/image";
+
 export function Navbar() {
   const router = useRouter();
+  const { data: session, status } = useSession();
+
   return (
     <motion.header
       initial={{ y: -20, opacity: 0 }}
@@ -45,16 +50,41 @@ export function Navbar() {
           </div>
 
           <div className="flex items-center space-x-4">
-            <Button
-              variant="ghost"
-              className="hidden md:inline-flex"
-              onClick={() => router.push("/auth/signin")}
-            >
-              Sign In
-            </Button>
-            <Button onClick={() => router.push("/auth/signup")}>
-              Get Started
-            </Button>
+            {status === "authenticated" && session?.user ? (
+              <div className="flex items-center space-x-4">
+                <div className="flex items-center space-x-2">
+                  {session.user.image && (
+                    <div className="relative w-8 h-8 rounded-full overflow-hidden">
+                      <Image
+                        src={session.user.image}
+                        alt={session.user.name || "Profile"}
+                        fill
+                        className="object-cover"
+                      />
+                    </div>
+                  )}
+                  <span className="text-sm font-medium">
+                    {session.user.name}
+                  </span>
+                </div>
+                <Button variant="ghost" onClick={() => signOut()}>
+                  Sign Out
+                </Button>
+              </div>
+            ) : (
+              <>
+                <Button
+                  variant="ghost"
+                  className="hidden md:inline-flex"
+                  onClick={() => router.push("/auth/signin")}
+                >
+                  Sign In
+                </Button>
+                <Button onClick={() => router.push("/auth/signup")}>
+                  Get Started
+                </Button>
+              </>
+            )}
           </div>
         </div>
       </nav>

@@ -25,10 +25,19 @@ const handler = NextAuth({
       const userRef = doc(db, "users", user.id);
       const docUser = await getDoc(userRef);
       if (docUser.exists()) {
-        // user already exists just sign in
         return true;
       } else {
-        setDoc(userRef, user);
+        // Create a clean user object with only the data we want to store
+        const userData = {
+          id: user.id,
+          name: user.name,
+          email: user.email || null,
+          image: user.image,
+          createdAt: new Date().toISOString(),
+          lastLoginAt: new Date().toISOString(),
+        };
+
+        await setDoc(userRef, userData);
         return true;
       }
     },
@@ -38,6 +47,18 @@ const handler = NextAuth({
     signOut: "/auth/signout",
     error: "/auth/error",
   },
+  cookies: {
+    state: {
+      name: `next-auth.state`,
+      options: {
+        httpOnly: true,
+        sameSite: "lax",
+        path: "/",
+        secure: process.env.NODE_ENV === "production",
+      },
+    },
+  },
+  secret: process.env.NEXTAUTH_SECRET,
 });
 
 export { handler as GET, handler as POST };
