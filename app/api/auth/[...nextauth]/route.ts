@@ -1,5 +1,7 @@
 import NextAuth from "next-auth";
 import TwitterProvider from "next-auth/providers/twitter";
+import { db } from "@/utils/firebase";
+import { doc, getDoc, setDoc } from "firebase/firestore";
 
 const handler = NextAuth({
   providers: [
@@ -9,10 +11,8 @@ const handler = NextAuth({
       version: "2.0",
 
       profile: (profile) => {
-        console.log(profile.data.email);
         return {
-          followers: profile.data.public_metrics?.followers_count,
-          following: profile.data.public_metrics?.following_count,
+          username: profile.data.username,
           id: profile.data.id,
           name: profile.data.name,
           image: profile.data.profile_image_url,
@@ -20,6 +20,19 @@ const handler = NextAuth({
       },
     }),
   ],
+  callbacks: {
+    async signIn({ user, account, profile }) {
+      const userRef = doc(db, "users", user.id);
+      const docUser = await getDoc(userRef);
+      if (docUser.exists()) {
+        // user already exists just sign in
+        return true;
+      } else {
+        setDoc(userRef, user);
+        return true;
+      }
+    },
+  },
   pages: {
     signIn: "/auth/signin",
     signOut: "/auth/signout",
