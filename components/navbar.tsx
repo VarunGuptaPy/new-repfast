@@ -4,8 +4,9 @@ import { Button } from "@/components/ui/button";
 import { Twitter } from "lucide-react";
 import { motion } from "framer-motion";
 import Link from "next/link";
-
+import { useRouter } from "next/navigation";
 export function Navbar() {
+  const router = useRouter();
   return (
     <motion.header
       initial={{ y: -20, opacity: 0 }}
@@ -23,22 +24,37 @@ export function Navbar() {
           </div>
 
           <div className="hidden md:flex items-center space-x-8">
-            <Link href="#features" className="text-muted-foreground hover:text-foreground transition-colors">
+            <Link
+              href="#features"
+              className="text-muted-foreground hover:text-foreground transition-colors"
+            >
               Features
             </Link>
-            <Link href="#how-it-works" className="text-muted-foreground hover:text-foreground transition-colors">
+            <Link
+              href="#how-it-works"
+              className="text-muted-foreground hover:text-foreground transition-colors"
+            >
               How it Works
             </Link>
-            <Link href="#pricing" className="text-muted-foreground hover:text-foreground transition-colors">
+            <Link
+              href="#pricing"
+              className="text-muted-foreground hover:text-foreground transition-colors"
+            >
               Pricing
             </Link>
           </div>
 
           <div className="flex items-center space-x-4">
-            <Button variant="ghost" className="hidden md:inline-flex">
+            <Button
+              variant="ghost"
+              className="hidden md:inline-flex"
+              onClick={() => router.push("/auth/signin")}
+            >
               Sign In
             </Button>
-            <Button>Get Started</Button>
+            <Button onClick={() => router.push("/auth/signup")}>
+              Get Started
+            </Button>
           </div>
         </div>
       </nav>
