@@ -35,6 +35,8 @@ const handler = NextAuth({
           image: user.image,
           createdAt: new Date().toISOString(),
           lastLoginAt: new Date().toISOString(),
+          learned: false,
+          
         };
 
         await setDoc(userRef, userData);
