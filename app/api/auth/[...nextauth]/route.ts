@@ -31,12 +31,11 @@ const handler = NextAuth({
         const userData = {
           id: user.id,
           name: user.name,
-          email: user.email || null,
           image: user.image,
           createdAt: new Date().toISOString(),
           lastLoginAt: new Date().toISOString(),
+          username: user.username || null,
           learned: false,
-          
         };
 
         await setDoc(userRef, userData);

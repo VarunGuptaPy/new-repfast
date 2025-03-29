@@ -1,8 +1,9 @@
 import axios from "axios";
+import { NextResponse } from "next/server";
 const emotions_string =
   "happy, sad, angry, excited, anxious, calm, frustrated, joyful, depressed, nervous, peaceful, irritated, elated, hopeless, hopeful, confused, confident, scared, relieved, annoyed, proud, ashamed, guilty, surprised, shocked, disgusted, amused, bored, curious, inspired, motivated, motivational, overwhelmed, lonely, loved, jealous, envious, grateful, thankful, tense, relaxed, stressed, content, disappointed, satisfied, unsatisfied, eager, hesitant, doubtful, certain, pleased, displeased, optimistic, pessimistic, regretful, nostalgic, thrilled, terrified, embarrassed, humiliated, sympathetic, empathetic, apathetic, indifferent, passionate, detached, warm, cold, hurt, healed, betrayed, trusting, suspicious, amazed, awed, bewildered, playful, serious, silly, mischievous, grumpy, cheerful, melancholy, sentimental, bitter, sweet, resentful, forgiving, vengeful, merciful, exhausted, energized, defeated, victorious, trapped, free, restless, patient, impatient, determined, uncertain, brave, cowardly, bold, shy, outraged, pitying, admiring, disdainful, respectful, disrespectful, smug, humble, arrogant, modest, desperate, assured, insecure, secure, rejected, accepted, included, excluded, overjoyed, underwhelmed, intrigued, disinterested, fascinated, distracted, focused, lost, found, yearning, fulfilled, empty, full, agitated, soothed, enraged, tranquil, innocent, righteous, wicked, gleeful, somber, lighthearted, heavyhearted, reflective";
 const twitterioapi = "383b32236ee9476ba6f226de768ad8e8";
-export async function first200Tweets(userId: string) {
+async function first200Tweets(userId: string) {
   var tweetsList = [];
   for (let index = 0; index < 10; index++) {
     try {
@@ -34,7 +35,7 @@ export async function first200Tweets(userId: string) {
   return tweetsList;
 }
 // from:VarunGuptaPy filter:replies
-export async function first200ReplyAndtheirtweet(username: string) {
+async function first200ReplyAndtheirtweet(username: string) {
   var replies = [];
   var post = [];
   var resPostDic: { [key: string]: string } = {};
@@ -65,7 +66,7 @@ export async function first200ReplyAndtheirtweet(username: string) {
   return [replies, post, resPostDic];
 }
 
-export async function getEmotionForText(sentence: String) {
+async function getEmotionForText(sentence: String) {
   const res = await axios.post(
     "https://api.helpingai.co/v1/chat/completions",
     {
@@ -102,8 +103,14 @@ async function getProfileDes(userId: string, username: string) {
   var tweetEmotion = [];
   var emotionCount: { [key: string]: number } = {};
   var postAndReplyEmotion: { [key: string]: number } = {};
-  for (let index = 0; index < tweetList.length; index++) {
-    const element = tweetList[index];
-    getEmotionForText(element);
-  }
+  //   for (let index = 0; index < tweetList.length; index++) {
+  //     const element = tweetList[index];
+  //     getEmotionForText(element);
+  //   }
+  return tweetList;
+}
+
+export async function GET(respone) {
+  const tweetList = await getProfileDes("1608765933354635266", "VarunGuptaPy");
+  NextResponse.json(tweetList);
 }
