@@ -6,11 +6,13 @@ export async function first200Tweets(userId: string) {
   var tweetsList = [];
   for (let index = 0; index < 10; index++) {
     try {
+      console.log(`Making request for page ${index}...`);
       const response = await axios.get(
         "https://api.twitterapi.io/twitter/user/last_tweets",
         {
           headers: {
-            "x-api-key": "383b32236ee9476ba6f226de768ad8e8",
+            "x-api-key": twitterioapi,
+            Accept: "application/json",
           },
           params: {
             userId,
@@ -18,16 +20,30 @@ export async function first200Tweets(userId: string) {
           },
         }
       );
-      const tweetsTempList = response.data.tweets;
-      for (let index = 0; index < tweetsTempList.length; index++) {
-        if (tweetsTempList.length === 0) {
-          break;
-        }
-        const element = tweetsTempList[index];
-        tweetsList.push(element.text);
+
+      console.log("Raw response:", JSON.stringify(response.data, null, 2));
+
+      if (!response.data || !Array.isArray(response.data.tweets)) {
+        console.error("Invalid response structure:", response.data);
+        break;
       }
-    } catch (e) {
-      console.log(e);
+
+      const tweetsTempList = response.data.tweets;
+      if (tweetsTempList.length === 0) break;
+
+      for (const tweet of tweetsTempList) {
+        if (tweet && tweet.text) {
+          tweetsList.push(tweet.text);
+        }
+      }
+
+      // Add delay between requests
+      await new Promise((resolve) => setTimeout(resolve, 2000));
+    } catch (error: any) {
+      console.error(
+        "Error fetching tweets:",
+        error?.response?.data || error.message || error
+      );
       break;
     }
   }
@@ -38,30 +54,92 @@ export async function first200ReplyAndtheirtweet(username: string) {
   var replies = [];
   var post = [];
   var resPostDic: { [key: string]: string } = {};
+
   for (let index = 0; index < 10; index++) {
-    const response = await axios.get(
-      "https://api.twitterapi.io/twitter/tweet/advanced_search",
-      {
-        headers: { "x-api-key": twitterioapi },
-        params: { query: `from:${username} filter:replies` },
+    try {
+      console.log(`Fetching replies page ${index} for ${username}...`);
+      const response = await axios.get(
+        "https://api.twitterapi.io/twitter/tweet/advanced_search",
+        {
+          headers: {
+            "x-api-key": twitterioapi,
+            Accept: "application/json",
+          },
+          params: {
+            query: `from:${username} filter:replies`,
+            limit: 10,
+          },
+        }
+      );
+
+      console.log(
+        "Raw search response:",
+        JSON.stringify(response.data, null, 2)
+      );
+
+      if (!response.data || !Array.isArray(response.data.tweets)) {
+        console.error("Invalid response structure:", response.data);
+        break;
       }
-    );
-    const data = response.data;
-    for (let index = 0; index < data.tweets.length; index++) {
-      const element = data.tweets[index];
-      replies.push(element.text);
-      const res = await axios.get("https://api.twitterapi.io/twitter/tweets", {
-        headers: { "x-api-key": twitterioapi },
-        params: { tweet_ids: [element.inReplyToId] },
-      });
-      const tweetText = res.data.tweets[0].text;
-      post.push(tweetText);
-      resPostDic[element.text] = tweetText;
-    }
-    if (!data.has_next_page) {
+
+      const data = response.data;
+
+      for (const tweet of data.tweets) {
+        try {
+          if (!tweet || !tweet.text || !tweet.inReplyToId) {
+            console.log("Skipping invalid tweet:", tweet);
+            continue;
+          }
+
+          replies.push(tweet.text);
+
+          console.log(`Fetching original tweet ${tweet.inReplyToId}...`);
+          const res = await axios.get(
+            "https://api.twitterapi.io/twitter/tweets",
+            {
+              headers: {
+                "x-api-key": twitterioapi,
+                Accept: "application/json",
+              },
+              params: { tweet_ids: [tweet.inReplyToId] },
+            }
+          );
+
+          console.log("Raw tweet response:", JSON.stringify(res.data, null, 2));
+
+          if (!res.data?.tweets?.[0]?.text) {
+            console.error("Invalid reply tweet data:", res.data);
+            continue;
+          }
+
+          const tweetText = res.data.tweets[0].text;
+          post.push(tweetText);
+          resPostDic[tweet.text] = tweetText;
+
+          // Add small delay between tweet fetches
+          await new Promise((resolve) => setTimeout(resolve, 1000));
+        } catch (error: any) {
+          console.error(
+            "Error processing tweet:",
+            error?.response?.data || error.message || error
+          );
+          continue;
+        }
+      }
+
+      if (!data.has_next_page) break;
+
+      // Add delay between page requests
+      await new Promise((resolve) => setTimeout(resolve, 2000));
+    } catch (error: any) {
+      console.error(
+        "Error fetching replies:",
+        error?.response?.data || error.message || error
+      );
       break;
     }
   }
+
   return [replies, post, resPostDic];
 }
 

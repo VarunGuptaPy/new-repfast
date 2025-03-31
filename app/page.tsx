@@ -3,6 +3,7 @@
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+
 import {
   Bot,
   Linkedin,
@@ -56,7 +57,8 @@ export default function Home() {
         </div>
 
         {/* Floating elements */}
-        <div className="absolute inset-0 overflow-hidden">8
+        <div className="absolute inset-0 overflow-hidden">
+          8
           {[...Array(5)].map((_, i) => (
             <motion.div
               key={i}

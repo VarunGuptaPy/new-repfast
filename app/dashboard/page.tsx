@@ -1,19 +1,56 @@
 "use client";
 
 import { Button } from "@/components/ui/button";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import { Loader2 } from "lucide-react";
-
+import { useSession } from "next-auth/react";
+import axios from "axios";
+import { useRouter } from "next/navigation";
+import { doc, getDoc, updateDoc } from "firebase/firestore";
+import { db } from "@/utils/firebase";
+import { getDate } from "date-fns";
 export default function DashboardPage() {
   const [isLoading, setIsLoading] = useState(false);
+  const { data: session, status } = useSession();
+  const router = useRouter();
+  const [userData, setUserData] = useState<any>(null);
+  const [learned, setLearned] = useState(false)
+  useEffect(() => {
+    if (status === "unauthenticated") {
+      router.push("/");
+    }
+
+    // Only try to fetch user data when session is loaded and authenticated
+    if (status === "authenticated" && session?.user?.id) {
+      getDoc(doc(db, "users", session.user.id))
+        .then((res) => {
+          setUserData(res.data());
+        })
+        .catch((error) => {
+          console.error("Error fetching user data:", error);
+        });
+    }
+  }, [status, session, router]);
 
   const handleCreateProfile = async () => {
-    setIsLoading(true);
-    // TODO: Add profile creation logic
-    // For now, just simulate loading
-    await new Promise((resolve) => setTimeout(resolve, 2000));
-    setIsLoading(false);
+    if (!session?.user?.id) return;
+
+    try {
+      setIsLoading(true);
+      // await updateDoc(doc(db, "users", session.user.id), {
+      //   status: "learning",
+      // });
+
+      await axios.post("/api/twitter-profile-info", {
+        username: session.user.username,
+        userId: session.user.id,
+      });
+    } catch (error) {
+      console.error("Error creating profile:", error);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -47,7 +84,9 @@ export default function DashboardPage() {
               ) : (
                 <Button
                   size="lg"
-                  onClick={handleCreateProfile}
+                  onClick={async () => {
+                    await handleCreateProfile();
+                  }}
                   className="bg-primary hover:bg-primary/90 transition-all duration-300"
                 >
                   Create Your RepFast Profile

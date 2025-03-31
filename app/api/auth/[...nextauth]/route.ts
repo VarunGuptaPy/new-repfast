@@ -12,34 +12,51 @@ const handler = NextAuth({
 
       profile: (profile) => {
         return {
-          username: profile.data.username,
           id: profile.data.id,
           name: profile.data.name,
+          email: null,
           image: profile.data.profile_image_url,
-        };
+          username: profile.data.username,
+        };   
       },
     }),
   ],
   callbacks: {
+    async session({ session, token }) {
+      if (session.user) {
+        session.user.id = token.sub!;
+        session.user.username = token.username as string;
+      }
+      return session;
+    },
+    async jwt({ token, user }) {
+      if (user) {
+        token.username = (user as any).username;
+      }
+      return token;
+    },
     async signIn({ user, account, profile }) {
-      const userRef = doc(db, "users", user.id);
-      const docUser = await getDoc(userRef);
-      if (docUser.exists()) {
-        return true;
-      } else {
-        // Create a clean user object with only the data we want to store
-        const userData = {
-          id: user.id,
-          name: user.name,
-          image: user.image,
-          createdAt: new Date().toISOString(),
-          lastLoginAt: new Date().toISOString(),
-          username: user.username || null,
-          learned: false,
-        };
+      try {
+        const userRef = doc(db, "users", user.id);
+        const docUser = await getDoc(userRef);
 
-        await setDoc(userRef, userData);
+        if (!docUser.exists()) {
+          const userData = {
+            id: user.id,
+            name: user.name,
+            image: user.image,
+            createdAt: new Date().toISOString(),
+            lastLoginAt: new Date().toISOString(),
+            username: (user as any).username,
+            learned: false,
+            status: "not learned",
+          };
+          await setDoc(userRef, userData);
+        }
         return true;
+      } catch (error) {
+        console.error("Error in signIn callback:", error);
+        return false;
       }
     },
   },
