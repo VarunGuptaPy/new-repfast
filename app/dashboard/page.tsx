@@ -9,22 +9,22 @@ import axios from "axios";
 import { useRouter } from "next/navigation";
 import { doc, getDoc, updateDoc } from "firebase/firestore";
 import { db } from "@/utils/firebase";
-import { getDate } from "date-fns";
 export default function DashboardPage() {
   const [isLoading, setIsLoading] = useState(false);
   const { data: session, status } = useSession();
   const router = useRouter();
   const [userData, setUserData] = useState<any>(null);
-  const [learned, setLearned] = useState(false)
+  const [learned, setLearned] = useState(false);
+  const [replyCount, setReplyCount] = useState<number>(1); // New state for number picker input
+
   useEffect(() => {
     if (status === "unauthenticated") {
       router.push("/");
     }
-
-    // Only try to fetch user data when session is loaded and authenticated
     if (status === "authenticated" && session?.user?.id) {
       getDoc(doc(db, "users", session.user.id))
         .then((res) => {
+          console.log("user data ", res.data());
           setUserData(res.data());
         })
         .catch((error) => {
@@ -32,7 +32,16 @@ export default function DashboardPage() {
         });
     }
   }, [status, session, router]);
-
+  useEffect(() => {
+    if (userData) {
+      console.log("userData is: " + userData);
+      if (userData.status === "learned") {
+        setLearned(true);
+      } else if (userData.status === "learning") {
+        setIsLoading(true);
+      }
+    }
+  }, [userData]);
   const handleCreateProfile = async () => {
     if (!session?.user?.id) return;
 
@@ -51,6 +60,12 @@ export default function DashboardPage() {
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const handleRetrain = () => {
+    // Logic for retraining the profile
+    console.log("Retrain profile with replies:", replyCount);
+    // Perform the retraining operation here
   };
 
   return (
@@ -80,6 +95,33 @@ export default function DashboardPage() {
                   <p className="text-primary font-medium">
                     Creating your profile... Please don't close this page.
                   </p>
+                </div>
+              ) : learned ? (
+                // New UI for when learned is true
+                <div className="space-y-4">
+                  <Button
+                    size="lg"
+                    className="bg-secondary hover:bg-secondary/90 transition-all duration-300"
+                    onClick={handleRetrain}
+                  >
+                    Retrain Your Profile
+                  </Button>
+                  <p className="text-muted-foreground">
+                    Wanna retrain your profile? Adjust the number of posts &
+                    replies:
+                  </p>
+                  <div className="flex items-center justify-center space-x-4">
+                    <input
+                      type="number"
+                      value={replyCount}
+                      min="1"
+                      className="w-20 border rounded p-2"
+                      onChange={(e) => setReplyCount(Number(e.target.value))}
+                    />
+                    <Button onClick={handleRetrain} className="ml-2">
+                      Start Replying
+                    </Button>
+                  </div>
                 </div>
               ) : (
                 <Button

@@ -9,7 +9,12 @@ const handler = NextAuth({
       clientId: process.env.TWITTER_ID!,
       clientSecret: process.env.TWITTER_SECRET!,
       version: "2.0",
-
+      authorization: {
+        url: "https://twitter.com/i/oauth2/authorize",
+        params: {
+          scope: "tweet.read users.read offline.access",
+        },
+      },
       profile: (profile) => {
         return {
           id: profile.data.id,
@@ -17,21 +22,42 @@ const handler = NextAuth({
           email: null,
           image: profile.data.profile_image_url,
           username: profile.data.username,
-        };   
+        };
       },
     }),
   ],
+  debug: process.env.NODE_ENV === "development",
   callbacks: {
     async session({ session, token }) {
       if (session.user) {
         session.user.id = token.sub!;
         session.user.username = token.username as string;
+        // Add access token to the session
+        session.accessToken = token.accessToken;
+        // Add error to the session if there is one
+        if (token.error) {
+          session.error = token.error;
+        }
       }
       return session;
     },
-    async jwt({ token, user }) {
+    async jwt({ token, user, account }) {
       if (user) {
         token.username = (user as any).username;
+      }
+      // Save the access token and refresh token to the JWT token
+      if (account) {
+        token.accessToken = account.access_token;
+        token.refreshToken = account.refresh_token;
+        
+        // Log the tokens in development for debugging
+        if (process.env.NODE_ENV === "development") {
+          console.log("Twitter OAuth tokens:", {
+            accessToken: account.access_token ? "Present" : "Missing",
+            tokenType: account.token_type,
+            scope: account.scope,
+          });
+        }
       }
       return token;
     },
