@@ -7,8 +7,10 @@ import { Loader2 } from "lucide-react";
 import { useSession } from "next-auth/react";
 import axios from "axios";
 import { useRouter } from "next/navigation";
-import { doc, getDoc, updateDoc } from "firebase/firestore";
+import { doc, getDoc } from "firebase/firestore";
 import { db } from "@/utils/firebase";
+import { toast } from "sonner";
+
 export default function DashboardPage() {
   const [isLoading, setIsLoading] = useState(false);
   const { data: session, status } = useSession();
@@ -18,54 +20,77 @@ export default function DashboardPage() {
   const [replyCount, setReplyCount] = useState<number>(1); // New state for number picker input
 
   useEffect(() => {
-    if (status === "unauthenticated") {
-      router.push("/");
-    }
-    if (status === "authenticated" && session?.user?.id) {
-      getDoc(doc(db, "users", session.user.id))
-        .then((res) => {
-          console.log("user data ", res.data());
-          setUserData(res.data());
-        })
-        .catch((error) => {
-          console.error("Error fetching user data:", error);
-        });
-    }
-  }, [status, session, router]);
-  useEffect(() => {
-    if (userData) {
-      console.log("userData is: " + userData);
-      if (userData.status === "learned") {
-        setLearned(true);
-      } else if (userData.status === "learning") {
-        setIsLoading(true);
+    const fetchUserData = async () => {
+      if (status === "unauthenticated") {
+        router.push("/");
+        return;
       }
-    }
-  }, [userData]);
+
+      if (status === "authenticated" && session?.user?.id) {
+        try {
+          setIsLoading(true);
+          const userDocRef = doc(db, "users", session.user.id);
+          const userDocSnap = await getDoc(userDocRef);
+
+          if (userDocSnap.exists()) {
+            const data = userDocSnap.data();
+            console.log("User data fetched:", data);
+            setUserData(data);
+
+            if (data.status === "learned") {
+              setLearned(true);
+            }
+          } else {
+            console.log("No user document found!");
+            toast.error("User data not found");
+          }
+        } catch (error) {
+          console.error("Error fetching user data:", error);
+          toast.error("Failed to fetch user data");
+        } finally {
+          setIsLoading(false);
+        }
+      }
+    };
+
+    fetchUserData();
+  }, [status, session, router]);
+
   const handleCreateProfile = async () => {
-    if (!session?.user?.id) return;
+    if (!session?.user?.id) {
+      toast.error("User session not found");
+      return;
+    }
 
     try {
       setIsLoading(true);
-      // await updateDoc(doc(db, "users", session.user.id), {
-      //   status: "learning",
-      // });
-
-      await axios.post("/api/twitter-profile-info", {
+      const response = await axios.post("/api/twitter-profile-info", {
         username: session.user.username,
         userId: session.user.id,
       });
+
+      if (response.data.success) {
+        toast.success("Profile created successfully");
+        // Refresh user data
+        const userDocRef = doc(db, "users", session.user.id);
+        const userDocSnap = await getDoc(userDocRef);
+        if (userDocSnap.exists()) {
+          setUserData(userDocSnap.data());
+          setLearned(userDocSnap.data().status === "learned");
+        }
+      }
     } catch (error) {
       console.error("Error creating profile:", error);
+      toast.error("Failed to create profile");
     } finally {
       setIsLoading(false);
     }
   };
 
   const handleRetrain = () => {
-    // Logic for retraining the profile
     console.log("Retrain profile with replies:", replyCount);
-    // Perform the retraining operation here
+    // Implement retraining logic here
+    toast.info("Retraining started");
   };
 
   return (
